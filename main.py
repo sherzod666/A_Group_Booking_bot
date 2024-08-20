@@ -1,4 +1,4 @@
-#часть обработчиков перенёс в main потому что для создания deep link и обработки моих броней с кнопками приглашения нужно было в функцию создания ссылки передать бота как аргумент, а при импортировании в файл routers возникала ошибка, тут крч сохраняются юзеры участников
+#часть обработчиков перенёс в main потому что для создания deep link и обработки моих броней с кнопками приглашения нужно было в функцию создания ссылки передать бота как аргумент, а при импортировании в файл routers возникала ошибка, тут крч сохраняются юзеры участников 
 import time
 import os
 import pytz
@@ -17,9 +17,12 @@ from aiogram.types import InlineQueryResultArticle, InputTextMessageContent, Swi
 from aiogram.utils.deep_linking import create_start_link
 from aiogram.fsm.strategy import FSMStrategy
 from dotenv import load_dotenv, find_dotenv
-from routers import main_router
+
+load_dotenv(find_dotenv())
+
+from routers import main_router, calendar_keyboard
 from cmds import listt_private
-from keyboards import *
+from keyboards import * 
 from custom_calendar import CustomCalendar  # Ensure you import your custom calendar if needed
 
 # Initialize the bot and dispatcher
@@ -47,7 +50,6 @@ async def check_bookings():
         notif_res = notification_cursor.fetchall()
         notification.commit()
         notification.close()
-        print(notif_res)
         now = datetime.datetime.now()
         if now.month > 9:
             if now.day > 9:
@@ -80,6 +82,40 @@ async def check_bookings():
         await asyncio.sleep(60)
 
 
+async def filtering_db():
+    while True:
+        optimization = sqlite3.connect('datebase.db')
+        optimization_cursor = optimization.cursor()
+        optimization_query = '''
+                            SELECT date, id FROM user_booking_data
+                            '''
+        optimization_cursor.execute(optimization_query)
+        dead_line = optimization_cursor.fetchall()
+        optimization.commit()
+        optimization.close()
+        for check in dead_line:
+            if check[0].startswith('0'):
+                day = check[0][1:2]
+            else:
+                day = check[0][0:2]
+            mon = check[0][3:]
+            if mon.startswith('0'):
+                mont = mon[-1]
+            else:
+                mont = mon
+            deleting = sqlite3.connect('datebase.db')
+            deleting_cursor = deleting.cursor()
+            deleting_query = '''
+                            DELETE FROM user_booking_data
+                            WHERE id = ?
+                            '''
+            if int(mont) <= datetime.datetime.now().month and int(day) < datetime.datetime.now().day:
+                deleting_cursor.execute(deleting_query, (check[-1], ))
+                deleting.commit()
+        deleting.close()
+        # Проверяем базу данных каждые 60 секунд
+        await asyncio.sleep(60)
+
 
 async def get_deep_link(payload):
     return await create_start_link(bot, payload, encode=True)
@@ -90,6 +126,9 @@ def decode_payload(payload):
 
 @dp.message(CommandStart(), StateFilter(None))
 async def send_welcome(message: types.Message, command: CommandStart):
+    global calendar_keyboard
+    calendar_keyboard = InlineKeyboardMarkup(inline_keyboard=[[]])
+    calendar_keyboard = InlineKeyboardBuilder()
     if command.args:  # Проверка наличия аргументов
         await handle_deep_link(message, command.args)
         connection = sqlite3.connect('datebase.db')
@@ -125,7 +164,7 @@ async def send_welcome(message: types.Message, command: CommandStart):
             cursor.execute(query, (f'{s} @{message.from_user.username}', absolute_username_keeper.booking_id))
             connection.commit()
             connection.close()
-
+        
         id_conn = sqlite3.connect('datebase.db')
         id_cursor = id_conn.cursor()
         id_query = '''
@@ -141,7 +180,6 @@ async def send_welcome(message: types.Message, command: CommandStart):
             for d in s:
                 id_res_list.append(d)
 
-        print(id_res_list)
 
         if ' ' in id_res_list:
             adding = sqlite3.connect('datebase.db')
@@ -158,7 +196,6 @@ async def send_welcome(message: types.Message, command: CommandStart):
             r = ''
             for t in id_res_list:
                 r += f'{t},'
-                print(r)
             ad = sqlite3.connect('datebase.db')
             ad_cursor = ad.cursor()
             ad_query = '''
@@ -189,7 +226,7 @@ async def illustration_of_bookings(msg: types.Message):
     search_res = cursor_showing_object.fetchall()
     illustrate_connection.commit()
     illustrate_connection.close()
-
+    
     if search_res:
         await msg.answer('Ваши брони:')
         for i in search_res:
@@ -238,7 +275,6 @@ async def inline_query_handler(inline_query: types.InlineQuery):
                 input_message_content=InputTextMessageContent(message_text=query_text)
             )
         ]
-        print(f"Results: {results}")
         await inline_query.answer(results)
     else:
         await inline_query.answer([])  # Отправить пустой ответ, если запрос не соответствует
@@ -251,6 +287,7 @@ async def main_func():
     await bot.delete_my_commands(scope=BotCommandScopeAllPrivateChats())
     await bot.set_my_commands(commands=listt_private, scope=BotCommandScopeAllPrivateChats())
     asyncio.create_task(check_bookings())
+    asyncio.create_task(filtering_db())
     await dp.start_polling(bot)  # Start polling
 
 if __name__ == '__main__':
