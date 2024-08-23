@@ -751,6 +751,65 @@ async def select_booking(msg: types.Message, state: FSMContext):
 @main_router.callback_query(StateFilter(FSM_conference.elect))
 async def postpone_booking(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
+
+
+
+    global calendar_keyboard
+    calendar_keyboard = InlineKeyboardMarkup(inline_keyboard=[[]])
+    calendar_keyboard = InlineKeyboardBuilder()
+    calendar_keyboard.add(InlineKeyboardButton(text=str(now.year), callback_data='year'))
+
+    weekdayy = datetime.datetime(now.year, now.month, 1)
+    weekday_counter = weekdayy.weekday() + 1
+
+    for m in month_list:
+        if m != now.strftime('%B'):
+            continue
+        else:
+            calendar_keyboard.add(InlineKeyboardButton(text='<-', callback_data=f'{m}last_month {str(now.year)}'))
+            calendar_keyboard.add(InlineKeyboardButton(text=m, callback_data='month'))
+            calendar_keyboard.add(InlineKeyboardButton(text='->', callback_data=f'{m}next_month {str(now.year)}'))
+            break
+
+    count = 0
+
+    if m == 'January' or m == 'March' or m == 'May' or m == 'July' or m == 'August' or m == 'October' or m == 'December':
+        count = 31
+    else:
+        if m == 'February':
+            if int(now.year) % 4 == 0:
+                count = 29
+            else:
+                count = 28
+        else:
+            count = 30
+
+    counter = 0
+    for d in day_list[0 : day_list.index(str(now.day))]:
+        counter += 1
+        calendar_keyboard.add(InlineKeyboardButton(text=' ', callback_data=' '))
+
+    if weekday_counter > 1:
+        for i in range(weekday_counter - 1):
+            calendar_keyboard.add(InlineKeyboardButton(text=' ', callback_data=' '))
+
+    for d in list(day_list[day_list.index(str(now.day)) : day_list.index(str(count)) + 1]):
+        counter += 1
+        v = str(now.day)  
+        if d == v:
+            calendar_keyboard.add(InlineKeyboardButton(text=d, callback_data=f'{str(now.year)}/{m}/{d}'))
+        else:
+            calendar_keyboard.add(InlineKeyboardButton(text=d, callback_data=f'{str(now.year)}/{m}/{d}'))
+
+    while (counter + weekday_counter - 1) % 7 != 0:
+        counter += 1
+        calendar_keyboard.add(InlineKeyboardButton(text=' ', callback_data=' '))
+    calendar_keyboard.add(InlineKeyboardButton(text='Главное меню', callback_data='return_to_main_menu'))
+    calendar_keyboard.adjust(1, 3, 7)
+
+
+
+
     data = callback.data.replace('id:', '').replace(' ', '')
     booking_id = int(data)
     id_keeper.id = booking_id
