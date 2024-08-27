@@ -124,7 +124,7 @@ def decode_payload(payload):
     decoded_bytes = base64.urlsafe_b64decode(payload + '=' * (4 - len(payload) % 4))
     return decoded_bytes.decode('utf-8')
 
-@dp.message(CommandStart(), StateFilter(None))
+@dp.message(CommandStart(), StateFilter('*'))
 async def send_welcome(message: types.Message, command: CommandStart):
     global calendar_keyboard
     calendar_keyboard = InlineKeyboardMarkup(inline_keyboard=[[]])
