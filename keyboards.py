@@ -32,7 +32,7 @@ contact_asker = ReplyKeyboardMarkup(
 conference_booking_mark_up = ReplyKeyboardMarkup(
     keyboard=[
         [
-            KeyboardButton(text='Конференс'),
+            KeyboardButton(text='Конференц зал'),
             KeyboardButton(text='Зал 2')
         ]
     ],
