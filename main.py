@@ -43,7 +43,7 @@ day_list = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10',
            '21', '22', '23', '24', '25', '26', '27', '28', '29', '30', '31']
 
 # Initialize the bot and dispatcher
-bot = Bot(token=os.getenv('TOKEN'), default=DefaultBotProperties(parse_mode=ParseMode.HTML))
+bot = Bot(token='7488397512:AAHDWX4hukDGIV12QjBOK_2idSEPk5B-ZJY', default=DefaultBotProperties(parse_mode=ParseMode.HTML))
 dp = Dispatcher(fsm_strategy=FSMStrategy.USER_IN_CHAT)
 
 calendar_keyboard = InlineKeyboardBuilder()
